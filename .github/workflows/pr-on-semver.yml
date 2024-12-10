@@ -28,7 +28,7 @@ jobs:
       - uses: peter-evans/create-pull-request@v7
         name: Create Pull Request
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.REPO_TOKEN }}
           commit-message: "ci(${{ matrix.env }}): bump version to ${{ github.ref_name }}"
           title: "${{ matrix.env }} - bump version to ${{ github.ref_name }}"
           body: |
