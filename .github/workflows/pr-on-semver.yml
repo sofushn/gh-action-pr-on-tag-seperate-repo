@@ -1,0 +1,39 @@
+name: Pull Request on SemVer tag
+on: 
+  push:
+    tags:
+        - 'v[0-9]+.[0-9]+.[0-9]+-[a-zA-Z]*'
+        - 'v[0-9]+.[0-9]+.[0-9]+'
+
+jobs:
+  auto-pull-request:
+    strategy:
+      matrix:
+        env:
+          - 'dk'
+          - 'fi'
+          - 'gb'
+          - 'nl'
+          - 'no'
+          - 'se'
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+            repository: 'sofushn/gh-action-pr-on-tag'
+            token: ${{ secrets.REPO_TOKEN }}
+      - name: Update values.yaml
+        run: |
+          yq -i '.values.image.tag = ${{ github.ref_name }}' "./argocd/production/company/${{ matrix.env }}/values.yaml"
+      - uses: peter-evans/create-pull-request@v7
+        name: Create Pull Request
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: "ci(${{ matrix.env }}): bump version to ${{ github.ref_name }}"
+          title: "${{ matrix.env }} - bump version to ${{ github.ref_name }}"
+          body: |
+            This PR was created automatically in response to a new SemVer tag. The version has been bumped to ${{ github.ref_name }}.
+
+            This PR is done for the `${{ matrix.env }}` environment.
+          branch: "bump-version-${{ matrix.env }}-${{ github.ref_name }}"
+          base: main
