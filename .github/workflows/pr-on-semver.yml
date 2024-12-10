@@ -24,8 +24,8 @@ jobs:
             token: ${{ secrets.REPO_TOKEN }}
       - name: Update values.yaml
         run: |
-          export VERSION=$(echo "${{ github.ref_name }}" | sed 's/^v//')
-          yq -i '.values.image.tag = strenv(VERSION)' "./argocd/production/company/${{ matrix.env }}/values.yaml"
+          export TAG_VERSION=$(echo "${{ github.ref_name }}" | sed 's/^v//')
+          yq -i '.values.image.tag = strenv(TAG_VERSION)' "./argocd/production/company/${{ matrix.env }}/values.yaml"
       - uses: peter-evans/create-pull-request@v7
         name: Create Pull Request
         with:
