@@ -9,13 +9,16 @@ jobs:
   auto-pull-request:
     strategy:
       matrix:
-        env:
+        region:
           - 'dk'
           - 'fi'
           - 'gb'
           - 'nl'
           - 'no'
           - 'se'
+        env:
+          - 'test'
+          - 'production' 
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
@@ -25,16 +28,17 @@ jobs:
       - name: Update values.yaml
         run: |
           export TAG_VERSION=$(echo "${{ github.ref_name }}" | sed 's/^v//')
-          yq -i '.values.image.tag = strenv(TAG_VERSION)' "./argocd/production/company/${{ matrix.env }}/values.yaml"
+          yq -i '.image_a_version = strenv(TAG_VERSION)' "./argocd/${{ matrix.env }}/company/${{ matrix.region }}/version.yaml"
+          yq -i '.image_b_version = strenv(TAG_VERSION)' "./argocd/${{ matrix.env }}/company/${{ matrix.region }}/version.yaml"
       - uses: peter-evans/create-pull-request@v7
         name: Create Pull Request
         with:
           token: ${{ secrets.REPO_TOKEN }}
-          commit-message: "ci(${{ matrix.env }}): bump version to ${{ github.ref_name }}"
-          title: "${{ matrix.env }} - bump version to ${{ github.ref_name }}"
+          commit-message: "ci(${{ matrix.env }}-${{ matrix.region }}): bump version to ${{ github.ref_name }}"
+          title: "ci(${{ matrix.env }}-${{ matrix.region }}): bump version to ${{ github.ref_name }}"
           body: |
             This PR was created automatically in response to a new SemVer tag. The version has been bumped to ${{ github.ref_name }}.
 
-            This PR is done for the `${{ matrix.env }}` environment.
-          branch: "bump-version-${{ matrix.env }}-${{ github.ref_name }}"
+            This PR is done for the `${{ matrix.env }}` environment in the '${{ matrix.region }}' region.
+          branch: "bump-version-${{ matrix.env }}-${{ matrix.region }}-${{ github.ref_name }}"
           base: main
