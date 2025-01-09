@@ -8,7 +8,6 @@ on:
 jobs:
   auto-pull-request:
     strategy:
-      fail-fast: false
       matrix:
         region:
           - 'dk'
@@ -30,10 +29,17 @@ jobs:
       - name: Update values.yaml
         run: |
           export TAG_VERSION=$(echo "${{ github.ref_name }}" | sed 's/^v//')
-          yq -i '.image_a_version = strenv(TAG_VERSION)' "./argocd/${{ matrix.env }}/company/${{ matrix.region }}/version.yaml"
-          yq -i '.image_b_version = strenv(TAG_VERSION)' "./argocd/${{ matrix.env }}/company/${{ matrix.region }}/version.yaml"
+          FILE_PATH="./argocd/${{ matrix.env }}/company/${{ matrix.region }}/version.yaml"
+
+          if [ -f "$FILE_PATH" ]; then
+            yq -i '.image_a_version = strenv(TAG_VERSION)' "$FILE_PATH"
+            yq -i '.image_b_version = strenv(TAG_VERSION)' "$FILE_PATH"
+          else
+            echo "Path $FILE_PATH does not exist. Skipping."
+          fi
       - uses: peter-evans/create-pull-request@v7
         name: Create Pull Request
+        if: success()
         with:
           token: ${{ secrets.REPO_TOKEN }}
           commit-message: "ci(${{ matrix.env }}-${{ matrix.region }}): bump version to ${{ github.ref_name }}"
@@ -44,14 +50,3 @@ jobs:
             This PR is done for the `${{ matrix.env }}` environment in the '${{ matrix.region }}' region.
           branch: "bump-version-${{ matrix.env }}-${{ matrix.region }}-${{ github.ref_name }}"
           base: main
-
-  handle-workflow-status:
-    needs: auto-pull-request
-    runs-on: ubuntu-latest
-    steps:
-      - name: Check matrix outcomes
-        run: |
-          # Evaluate matrix job results and determine overall status
-          if [ "${{ needs.auto-pull-request.result }}" == "failure" ]; then
-            echo "##[warning] Some matrix jobs failed, but the workflow will pass."
-          fi
