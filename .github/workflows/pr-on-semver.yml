@@ -27,6 +27,7 @@ jobs:
             repository: 'sofushn/gh-action-pr-on-tag'
             token: ${{ secrets.REPO_TOKEN }}
       - name: Update values.yaml
+        id: update-values
         run: |
           export TAG_VERSION=$(echo "${{ github.ref_name }}" | sed 's/^v//')
           FILE_PATH="./argocd/${{ matrix.env }}/company/${{ matrix.region }}/version.yaml"
@@ -34,12 +35,15 @@ jobs:
           if [ -f "$FILE_PATH" ]; then
             yq -i '.image_a_version = strenv(TAG_VERSION)' "$FILE_PATH"
             yq -i '.image_b_version = strenv(TAG_VERSION)' "$FILE_PATH"
+            echo "File exists and was updated."
+            echo "should_create_pr=true" >> $GITHUB_OUTPUT
           else
-            echo "Path $FILE_PATH does not exist. Skipping."
+            echo "File $FILE_PATH does not exist. Skipping."
+            echo "should_create_pr=false" >> $GITHUB_OUTPUT
           fi
       - uses: peter-evans/create-pull-request@v7
         name: Create Pull Request
-        if: success()
+        if: success() && steps.update-values.outputs.should_create_pr == 'true'
         with:
           token: ${{ secrets.REPO_TOKEN }}
           commit-message: "ci(${{ matrix.env }}-${{ matrix.region }}): bump version to ${{ github.ref_name }}"
