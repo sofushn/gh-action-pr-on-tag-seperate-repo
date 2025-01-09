@@ -8,6 +8,7 @@ on:
 jobs:
   auto-pull-request:
     strategy:
+      fail-fast: false
       matrix:
         region:
           - 'dk'
@@ -20,7 +21,6 @@ jobs:
           - 'test'
           - 'production' 
     runs-on: ubuntu-22.04
-    continue-on-error: true
     steps:
       - uses: actions/checkout@v4
         with:
@@ -43,3 +43,14 @@ jobs:
             This PR is done for the `${{ matrix.env }}` environment in the '${{ matrix.region }}' region.
           branch: "bump-version-${{ matrix.env }}-${{ matrix.region }}-${{ github.ref_name }}"
           base: main
+
+  handle-workflow-status:
+    needs: auto-pull-request
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check matrix outcomes
+        run: |
+          # Evaluate matrix job results and determine overall status
+          if [ "${{ needs.auto-pull-request.result }}" == "failure" ]; then
+            echo "##[warning] Some matrix jobs failed, but the workflow will pass."
+          fi
